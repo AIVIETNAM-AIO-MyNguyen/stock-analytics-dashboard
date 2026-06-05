@@ -96,5 +96,4 @@ if selected_tickers:
         else:
             st.error(f"❌ Không tìm thấy dữ liệu cho mã '{ticker}'")
 else:
-    st.info("💡 Vui lòng chọn ít nhất một mã cổ phiếu ở thanh Sidebar bên trái để hiển thị dữ liệu!")ar bên trái để hiển thị dữ liệu!")
-
+ st.info("💡 Vui lòng chọn ít nhất một mã cổ phiếu ở thanh Sidebar bên trái để hiển thị dữ liệu!")
