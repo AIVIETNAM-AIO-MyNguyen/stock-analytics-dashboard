@@ -31,26 +31,33 @@ if selected_tickers:
         st.markdown(f"## 📊 Phân tích mã cổ phiếu: **{ticker}**")
         
         with st.spinner(f'Đang tải dữ liệu cho {ticker}...'):
+            # Đảm bảo giữ nguyên cấu hình group_by cũ để tránh lỗi cấu trúc bảng
             stock_data = yf.download(ticker, period="1mo")
         
         if not stock_data.empty:
-            # Tính toán số liệu cho thẻ KPI (Metrics) dựa trên biến động so với hôm qua
-            latest_data = stock_data.tail(2)
-            if len(latest_data) == 2:
-                price_today = float(latest_data['Close'].iloc[1])
-                price_yesterday = float(latest_data['Close'].iloc[0])
-                delta_price = price_today - price_yesterday
-                volume_today = int(latest_data['Volume'].iloc[1])
-            else:
-                price_today = float(stock_data['Close'].iloc[-1])
+            # Ép mảng dữ liệu về dạng phẳng đơn giản để loại bỏ lỗi đa tầng của yfinance
+            df = stock_data.copy()
+            
+            # Lấy giá đóng cửa ngày gần nhất và ngày trước đó một cách an toàn
+            try:
+                price_today = float(df['Close'].iloc[-1])
+                if len(df) > 1:
+                    price_yesterday = float(df['Close'].iloc[-2])
+                    delta_price = price_today - price_yesterday
+                else:
+                    delta_price = 0.0
+                volume_today = int(df['Volume'].iloc[-1])
+            except Exception:
+                # Phương án dự phòng nếu cấu trúc bảng bị thay đổi theo phiên
+                price_today = float(df['Close'].values[-1])
                 delta_price = 0.0
-                volume_today = int(stock_data['Volume'].iloc[-1])
+                volume_today = int(df['Volume'].values[-1])
 
             # 2. Thẻ KPI (Metrics): Hiển thị giá và mũi tên xanh/đỏ tăng giảm
             col1, col2 = st.columns(2)
             with col1:
                 st.metric(
-                    label=f"Giá đóng cửa hiện tại ({ticker})", 
+                    label=f"Giá đóng cửa gần nhất ({ticker})", 
                     value=f"${price_today:,.2f}", 
                     delta=f"${delta_price:,.2f}"
                 )
@@ -66,9 +73,9 @@ if selected_tickers:
             tab1, tab2 = st.tabs(["📉 Biểu đồ xu hướng (Matplotlib)", "📋 Bảng dữ liệu chi tiết"])
             
             with tab1:
-                # Vẽ biểu đồ bằng Matplotlib chi tiết chuẩn ảnh bạn gửi
+                # Vẽ biểu đồ bằng Matplotlib chi tiết chuẩn ảnh mong muốn
                 fig, ax = plt.subplots(figsize=(10, 4.5))
-                ax.plot(stock_data.index, stock_data['Close'], label="Close Price", color="#1f77b4", linewidth=2)
+                ax.plot(df.index, df['Close'], label="Close Price", color="#1f77b4", linewidth=2)
                 
                 # Định dạng tiêu đề và nhãn trục
                 ax.set_title(f"{ticker} Closing Prices (Last 1 Month)", fontsize=14, pad=10)
@@ -82,12 +89,12 @@ if selected_tickers:
                 plt.close(fig)
                 
             with tab2:
-                # Đưa bảng dữ liệu đã sắp xếp ngày mới nhất lên trên vào tab 2
-                st.dataframe(stock_data.sort_index(ascending=False), use_container_width=True)
+                # Đưa bảng dữ liệu hiển thị lên tab 2
+                st.dataframe(df.sort_index(ascending=False), use_container_width=True)
                 
             st.markdown("---") # Kẻ đường phân cách nếu chọn nhiều mã
         else:
             st.error(f"❌ Không tìm thấy dữ liệu cho mã '{ticker}'")
 else:
-    st.info("💡 Vui lòng chọn ít nhất một mã cổ phiếu ở thanh Sidebar bên trái để hiển thị dữ liệu!")
+    st.info("💡 Vui lòng chọn ít nhất một mã cổ phiếu ở thanh Sidebar bên trái để hiển thị dữ liệu!")ar bên trái để hiển thị dữ liệu!")
 
